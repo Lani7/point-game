@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <locale.h> // setlocale()
+#include <stdlib.h> //rand(), srand()
+#include <time.h>   //time()
+
 #include "headers/main.h"
 #include "game.c"
 // #include "util.c"
@@ -28,10 +31,7 @@ int main()
   // refresh();
   // getch();
 
-  endwin();
+  endwin(); // curses모드 종료.
 
-  // 주인공 키보드로 움직이기
-
-  // endwind(); // curses모드 종료.
   return 0;
 }
