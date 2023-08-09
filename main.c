@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <locale.h> // setlocale()
 #include <stdlib.h> //rand(), srand()
-#include <time.h>   //time()
+#include <time.h>   //time(), clock()
 
 #include "headers/main.h"
 #include "game.c"
