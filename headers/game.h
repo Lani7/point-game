@@ -9,6 +9,7 @@ void showFoodsEnemies(int, char);
 void movePlayer(int *, int *, int, int, int *);
 int getPoint(int *);
 // void moveEnemies(struct *);
-void updateMove(int *, int *);
 
+void waitrender(clock_t);
+void sleep(int);
 int keyControl();

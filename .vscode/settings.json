@@ -3,6 +3,7 @@
     "locale.h": "c",
     "main.h": "c",
     "util.h": "c",
-    "stdio.h": "c"
+    "stdio.h": "c",
+    "time.h": "c"
   }
 }

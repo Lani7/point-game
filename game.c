@@ -5,7 +5,7 @@
 #define HEIGHT 16
 #define FOOD_CNT 18 // food의 개수
 #define ENEMY_CNT 8 // 적의 개수
-#define SPEED 100   // 적이 움직이는 속도
+#define SPEED 1000  // 적이 움직이는 속도
 #define DISTANCE 1  // 적이 움직이는 거리
 
 // 방향키 27, 91, xx (3개 필요)
@@ -16,10 +16,6 @@
 #define ARROW 27
 #define ARROW2 91
 #define QUIT 113 // q
-
-// void moveEnemies(struct enemyMotion *);
-
-clock_t oldTime;
 
 char map[HEIGHT][WIDTH] = {
     {"11111111111111111111"},
@@ -39,11 +35,15 @@ char map[HEIGHT][WIDTH] = {
     {"1000000000p000000001"},
     {"11111111111111111111"}};
 
+clock_t oldTime;
+
 // enemy의 움직임을 위한 x, y좌표 구조체 선언
 struct EnemyMotion
 {
   int x;
   int y;
+  char direction; // l : 왼쪽, r : 오른쪽
+  // clock_t startTime;
 };
 
 // 구조체 배열 선언
@@ -56,6 +56,8 @@ void gameLoop()
   int point = 0;   // point 점수
   int playing = 1; // 게임진행중. true
 
+  // oldTime = clock(); // 시간 초기화
+
   showFoodsEnemies(FOOD_CNT, 'f');  // 먹이의 좌표를 map에 생성
   showFoodsEnemies(ENEMY_CNT, 'e'); // 적의 좌표를 map에 생성
   drawMap(&x, &y);                  // map 출력. 좌표 포인터를 전달
@@ -64,10 +66,6 @@ void gameLoop()
 
   while (playing)
   {
-    /* // todo: 구조체 배열을 하나씩 꺼내와서 각 구조체에 저장되어 있는
-    // enemies의 x, y좌표들을 꺼내서 distance만큼 이동한다.*/
-    moveEnemies(enemyArr);
-
     switch (keyControl())
     {
     case UP:
@@ -87,73 +85,107 @@ void gameLoop()
       playing = 0; // 게임 종료
       break;
     }
+
+    moveEnemies(enemyArr);
+
+    waitrender(oldTime);
+
     refresh();
   }
 }
 
-// enemy를 움직인다.
-// void moveEnemies(int *x, int *y)
-void moveEnemies(struct EnemyMotion *enemyArr)
+// 렌더링되기까지 기다린다.
+void waitrender(clock_t oldTime)
 {
-  /* // todo: 구조체 배열을 하나씩 꺼내와서 각 구조체에 저장되어 있는
-    // enemies의 x, y좌표들을 꺼내서 distance만큼 이동한다.*/
-  int ex, ey;
-  clock_t curTime = clock(); // 현재 시간
-  // 현재시간에서 e배열 생성 후 저장된 시간을 뺀 차이가 speed(100ms)보다 클 때 움직인다.
-
-  // printw("Time2: %lu", curTime);
-  if (curTime - oldTime > SPEED) // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우
+  clock_t curTime;
+  while (1)
   {
-    for (int i = 0; i < ENEMY_CNT; i++)
-    {
-      // e의 배열 x좌표를 distance만큼 움직여준다
-      ex = enemyArr[i].x;
-      ey = enemyArr[i].y;
-
-      // 기존 좌표에 있던 enemy를 0으로 바꾸고 거리(1)만큼 e로 바꾼다.
-      map[ey][ex] = '0';
-      map[ey][ex + DISTANCE] = 'e';
-
-      // // enemy들의 움직임을 업데이트해서 표현한다.
-      updateMove(&ex, &ey);
-    }
-    // drawMap(x, y);
+    curTime = clock();
+    if (curTime - oldTime > SPEED)
+      break;
   }
 }
 
-// enemy들의 움직임을 업데이트해서 표현한다.
-void updateMove(int *ex, int *ey)
+// sleep
+void sleep(int ms)
 {
-  // 원래 있던 e는 0으로 바뀌고,
+  clock_t start = clock();
+  ms--;
+  while (1)
+  {
+    if ((clock() - start) > ms)
+      break;
+  }
+}
 
-  // x축으로 distance만큼 맵에서 이동한다.
-  // 기존 좌표에 있던 enemy를 0으로 바꾸고 거리(1)만큼 e로 바꾼다.
-  map[*ey][*ex] = '0';
-  map[*ey][*ex + DISTANCE] = 'e';
+// enemy를 움직인다.
+void moveEnemies(struct EnemyMotion *enemyArr)
+{
+  int ex, ey, edrt;
+  clock_t curTime = clock();
+  // 현재시간에서 e배열 생성 후 저장된 시간을 뺀 차이가 speed(100ms)보다 클 때 움직인다.
 
-  gotoXY(*ex, *ey);
-  printw(" ");
-
-  gotoXY(*ex + DISTANCE, *ey);
-  printw("◇");
-
-  // for (int i = 0; i < ENEMY_CNT; i++)
+  if (curTime - oldTime < SPEED)
+    return;
+  //////////////
+  // if (curTime - oldTime > SPEED) // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우
   // {
-  //   map[*ey][*ex] = ' ';
-  // }
+  mvprintw(0, 0, "curTime - oldTime: %lu", curTime - oldTime);
+  // mvprintw(1, 1, "oldTime 1: %lu", oldTime);
+  refresh();
 
-  // int h, w;
-  // for (int h = 0; h < HEIGHT; h++)
-  // {
-  //   for (int w = 0; w < WIDTH; w++)
-  //   {
-  //     char loc = map[h][w];
-  //     if (loc == 'e')
-  //     { // enemy
-  //       printw("◇");
-  //     }
-  //   }
-  //   printw("\n");
+  // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우 실행
+  // sleep(100000);
+  for (int i = 0; i < ENEMY_CNT; i++)
+  {
+    ex = enemyArr[i].x;
+    ey = enemyArr[i].y;
+
+    sleep(20000);
+    // sleep(10000);
+
+    // 기존 좌표에 있던 enemy를 0으로 바꾸고 거리(1)만큼 e로 바꾼다.
+    gotoXY(ex, ey);
+    printw(" ");
+    map[ey][ex] = '0';
+
+    // 왼쪽벽에 도달할 경우 방향을 오른쪽으로 바꿔준다.
+    if (map[ey][ex - DISTANCE] == '1')
+    {
+      enemyArr[i].direction = 'r'; // right
+    }
+    // 오른쪽벽에 도달할 경우 방향을 왼쪽으로 바꿔준다.
+    else if (map[ey][ex + DISTANCE] == '1')
+    {
+      enemyArr[i].direction = 'l'; // left
+    }
+
+    edrt = enemyArr[i].direction;
+
+    if (edrt == 'r')
+    {
+      gotoXY(ex + DISTANCE, ey);
+      printw("◇");
+
+      map[ey][ex + DISTANCE] = 'e';
+      // e의 배열 x좌표를 distance만큼 움직여준다
+      enemyArr[i].x += DISTANCE;
+    }
+    // 오른쪽 벽에 도달했을 경우 방향을 0(왼쪽)으로 바꿔준다.
+    else if (edrt == 'l')
+    {
+      gotoXY(ex - DISTANCE, ey);
+      printw("◇");
+
+      map[ey][ex - DISTANCE] = 'e';
+      // e의 배열 x좌표를 distance만큼 움직여준다
+      enemyArr[i].x -= DISTANCE;
+    }
+
+    // printw("test... : %d", i);
+    refresh();
+  }
+  oldTime = curTime;
   // }
 }
 
@@ -162,6 +194,9 @@ void showFoodsEnemies(int cnt, char type)
 {
   int fy, fx; // food 혹은 enemy의 y좌표, x좌표
   int i;
+  // todo : f와 e의 좌표가 플레이어 x, y의 좌표와 겹치지 않아야 한다.
+  // todo : f는 한 줄에 하나씩만.
+  // todo : f- direction도 랜덤으로. (%이용해도 될듯)
 
   // 랜덤 숫자의 x, y좌표를 구한다.
   for (i = 0; i < cnt; i++)
@@ -187,9 +222,10 @@ void showFoodsEnemies(int cnt, char type)
         // enemies의 랜덤 x, y좌표(fy, fx)를 구조체 배열에 저장한다.
         enemyArr[i].x = fx;
         enemyArr[i].y = fy;
+        enemyArr[i].direction = 'r';
       }
 
-      continue;
+      // continue;
     }
     else
     {
@@ -197,10 +233,7 @@ void showFoodsEnemies(int cnt, char type)
       continue;
     }
   }
-
-  if (type == 'e')
-    oldTime = clock(); // 먹이 생성 후 현재 시간
-  // printw("Time1: %lu", oldTime);
+  oldTime = clock(); // 시간 초기화
 }
 
 // map을 화면에 표시한다.
@@ -259,8 +292,8 @@ void movePlayer(int *x, int *y, int nx, int ny, int *point)
     printw("○");
 
     if (mapObject == 'f')
-    {                              // 먹이
-      map[*y + ny][*x + nx] = '0'; // map에서 'f'를 '0'으로 바꾼다.
+    { // 먹이
+      // map[*y + ny][*x + nx] = '0'; // map에서 'f'를 '0'으로 바꾼다.
       getPoint(point);
       drawPointInfo(point);
     }
@@ -282,10 +315,10 @@ int getPoint(int *point)
 // 키보드 입력값을 받는다.
 int keyControl()
 {
-  char firstKey = getchar();
-  if (firstKey == ARROW && getchar() == ARROW2)
+  char firstKey = getch();
+  if (firstKey == ARROW && getch() == ARROW2)
   {
-    char key = getchar();
+    char key = getch();
     if (key == UP)
       return UP;
     else if (key == DOWN)
