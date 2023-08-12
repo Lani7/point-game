@@ -123,13 +123,12 @@ void moveEnemies(struct EnemyMotion *enemyArr)
 {
   int ex, ey, edrt;
   clock_t curTime = clock();
-  // 현재시간에서 e배열 생성 후 저장된 시간을 뺀 차이가 speed(100ms)보다 클 때 움직인다.
 
+  // 현재시간에서 e배열 생성 후 저장된 시간을 뺀 차이가 speed(100ms)보다 클 때 움직인다.
   if (curTime - oldTime < SPEED)
     return;
-  //////////////
-  // if (curTime - oldTime > SPEED) // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우
-  // {
+
+  // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우
   mvprintw(0, 0, "curTime - oldTime: %lu", curTime - oldTime);
   // mvprintw(1, 1, "oldTime 1: %lu", oldTime);
   refresh();
@@ -144,10 +143,17 @@ void moveEnemies(struct EnemyMotion *enemyArr)
     sleep(20000);
     // sleep(10000);
 
-    // 기존 좌표에 있던 enemy를 0으로 바꾸고 거리(1)만큼 e로 바꾼다.
-    gotoXY(ex, ey);
-    printw(" ");
-    map[ey][ex] = '0';
+    if (map[ey][ex] == 'f')
+    { // 현재 좌표에 저장되어 있는 게 f라면 먹이를 출력한다.
+      gotoXY(ex, ey);
+      printw("●");
+    }
+    else
+    { // 현재 좌표의 e를 없어지게 한다.
+      gotoXY(ex, ey);
+      printw(" ");
+      map[ey][ex] = '0';
+    }
 
     // 왼쪽벽에 도달할 경우 방향을 오른쪽으로 바꿔준다.
     if (map[ey][ex - DISTANCE] == '1')
@@ -160,24 +166,43 @@ void moveEnemies(struct EnemyMotion *enemyArr)
       enemyArr[i].direction = 'l'; // left
     }
 
-    edrt = enemyArr[i].direction;
+    edrt = enemyArr[i].direction; // 진행 방향
 
     if (edrt == 'r')
     {
+      // 다음 +1 x좌표에 e를 출력한다.
       gotoXY(ex + DISTANCE, ey);
       printw("◇");
 
-      map[ey][ex + DISTANCE] = 'e';
+      // 지나갈 좌표에 먹이가 있다면, 그 좌표에 다시 먹이를 출력해야 한다.
+      if (map[ey][ex + DISTANCE] == 'f')
+      {
+        map[ey][ex + DISTANCE] = 'f';
+      }
+      else
+      {
+        map[ey][ex + DISTANCE] = 'e'; // 먹이가 없다면 enemy를 표시
+      }
+
       // e의 배열 x좌표를 distance만큼 움직여준다
       enemyArr[i].x += DISTANCE;
     }
-    // 오른쪽 벽에 도달했을 경우 방향을 0(왼쪽)으로 바꿔준다.
+    // 오른쪽 벽에 도달했을 경우 방향을 l(왼쪽)으로 바꿔준다.
     else if (edrt == 'l')
     {
       gotoXY(ex - DISTANCE, ey);
       printw("◇");
 
-      map[ey][ex - DISTANCE] = 'e';
+      // 지나갈 좌표에 먹이가 있다면, 그 좌표에 다시 먹이를 출력해야 한다.
+      if (map[ey][ex - DISTANCE] == 'f')
+      {
+        map[ey][ex - DISTANCE] = 'f';
+      }
+      else
+      {
+        map[ey][ex - DISTANCE] = 'e';
+      }
+
       // e의 배열 x좌표를 distance만큼 움직여준다
       enemyArr[i].x -= DISTANCE;
     }
@@ -186,7 +211,6 @@ void moveEnemies(struct EnemyMotion *enemyArr)
     refresh();
   }
   oldTime = curTime;
-  // }
 }
 
 // 먹이와 적을 map에 표시한다.
@@ -195,8 +219,7 @@ void showFoodsEnemies(int cnt, char type)
   int fy, fx; // food 혹은 enemy의 y좌표, x좌표
   int i;
   // todo : f와 e의 좌표가 플레이어 x, y의 좌표와 겹치지 않아야 한다.
-  // todo : f는 한 줄에 하나씩만.
-  // todo : f- direction도 랜덤으로. (%이용해도 될듯)
+  // todo : 게임 시작시 플레이어가 있는 행에는 e가 없도록 한다.
 
   // 랜덤 숫자의 x, y좌표를 구한다.
   for (i = 0; i < cnt; i++)
