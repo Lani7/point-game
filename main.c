@@ -1,7 +1,8 @@
 #include <stdio.h>
-#include <locale.h> // setlocale()
-#include <stdlib.h> //rand(), srand()
-#include <time.h>   //time(), clock()
+#include <locale.h>  // setlocale()
+#include <stdlib.h>  //rand(), srand()
+#include <time.h>    //time(), clock()
+#include <stdbool.h> // bool
 
 #include "headers/main.h"
 #include "game.c"
@@ -9,18 +10,34 @@
 
 int main()
 {
-  setlocale(LC_ALL, ""); // 프로그램 전체 로케일을 프로세스의 기본 로케일을 사용
-  // initscr();             // curses모드 시작. 화면 초기화
-  WINDOW *w = initscr();
-  nodelay(w, TRUE);
+  init(); // 초기화
 
-  curs_set(0); // 커서 없애기. 0~2사이의 인자값을 가지고 0에 가까울수록 커서가 보이지 않는다.
+  // 메뉴 선택하기
+  bool flag = true;
+  while (flag)
+  {
+    // clear(); // 화면 초기화
+    gotoXY(5, 3);
+    titlePrint();
 
-  // gotoXY(5, 5);
-  // 콘솔 창
-  // titlePrint();
-
-  gameLoop();
+    int key = selectMenu();
+    clear(); // 화면 초기화
+    switch (key)
+    {
+    case 1:
+      // 사용자 입력 받기
+      gameLoop();
+      // 본인의 이름과 점수, 랭킹 5 기록 보여주기
+      break;
+    case 2:
+      explainRules();
+      break;
+    case 3:
+      flag = false;
+      break;
+    }
+    clear(); // 화면 초기화
+  }
 
   // int key;
   // while (1)

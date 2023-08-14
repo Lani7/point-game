@@ -15,6 +15,7 @@
 #define DOWN 66
 #define ARROW 27
 #define ARROW2 91
+#define SPACE 32
 #define QUIT 113 // q
 
 char map[HEIGHT][WIDTH] = {
@@ -43,20 +44,74 @@ struct EnemyMotion
   int x;
   int y;
   char direction; // l : 왼쪽, r : 오른쪽
-  // clock_t startTime;
 };
 
 // 구조체 배열 선언
 struct EnemyMotion enemyArr[ENEMY_CNT];
 void moveEnemies(struct EnemyMotion *enemyArr);
 
+// 메뉴를 선택한다.
+int selectMenu()
+{
+  gotoXY(5, 6);
+  printMenu();
+
+  int key = getchar() - '0';
+  switch (key)
+  {
+  case 1:
+    return 1;
+  case 2:
+    return 2;
+  case 3:
+    return 3;
+  }
+
+  return 0;
+}
+
+// 메뉴를 출력한다.
+void printMenu()
+{
+  printw("Menu (해당하는 번호를 입력하세요.) \n");
+  printw("1. 게임 시작\n");
+  printw("2. 게임 설명\n");
+  printw("3. 나가기\n");
+  refresh();
+}
+
+void titlePrint()
+{
+  // gotoXY(1, 1);
+  printw("Welcome\n"); // curses 모드에서는 printf() 불가
+  printw("to the score game.\n");
+  refresh(); // 화면의 내용을 갱신. 함수를 호출해야 해당 내용이 보인다.
+}
+
+// 게임 규칙을 설명한다.
+void explainRules()
+{
+  printw("1. 키보드 화살키로 ○를 상하좌우로 움직일 수 있다.\n");
+  printw("2. ●를 먹으면 포인트를 얻는다.\n");
+  printw("3. ◇를 만나면 게임이 종료된다.\n");
+  printw("\n메뉴로 돌아가기 : 스페이스바를 누르세요.");
+  refresh();
+
+  while (1)
+  {
+    if (keyControl() == SPACE)
+    {
+      clear();
+      break;
+    }
+  }
+}
+
 void gameLoop()
 {
   int x, y;        // 플레이어 좌표 저장 변수 (x, y)
   int point = 0;   // point 점수
   int playing = 1; // 게임진행중. true
-
-  // oldTime = clock(); // 시간 초기화
 
   showFoodsEnemies(FOOD_CNT, 'f');  // 먹이의 좌표를 map에 생성
   showFoodsEnemies(ENEMY_CNT, 'e'); // 적의 좌표를 map에 생성
@@ -88,33 +143,18 @@ void gameLoop()
 
     moveEnemies(enemyArr);
 
-    waitrender(oldTime);
+    waitrender(oldTime, SPEED);
 
     refresh();
-  }
-}
 
-// 렌더링되기까지 기다린다.
-void waitrender(clock_t oldTime)
-{
-  clock_t curTime;
-  while (1)
-  {
-    curTime = clock();
-    if (curTime - oldTime > SPEED)
-      break;
-  }
-}
-
-// sleep
-void sleep(int ms)
-{
-  clock_t start = clock();
-  ms--;
-  while (1)
-  {
-    if ((clock() - start) > ms)
-      break;
+    // 만약 플레이어와 enemy가 충돌하면 게임종료된다.(playing = 0)
+    if (crash(&x, &y))
+    {
+      playing = 0;
+      // 게임 종료 후 게임 오버 화면.
+      drawGameOver();
+      sleep(2000000);
+    }
   }
 }
 
@@ -128,20 +168,13 @@ void moveEnemies(struct EnemyMotion *enemyArr)
   if (curTime - oldTime < SPEED)
     return;
 
-  // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우
-  mvprintw(0, 0, "curTime - oldTime: %lu", curTime - oldTime);
-  // mvprintw(1, 1, "oldTime 1: %lu", oldTime);
-  refresh();
-
   // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우 실행
-  // sleep(100000);
   for (int i = 0; i < ENEMY_CNT; i++)
   {
     ex = enemyArr[i].x;
     ey = enemyArr[i].y;
 
     sleep(20000);
-    // sleep(10000);
 
     if (map[ey][ex] == 'f')
     { // 현재 좌표에 저장되어 있는 게 f라면 먹이를 출력한다.
@@ -207,7 +240,6 @@ void moveEnemies(struct EnemyMotion *enemyArr)
       enemyArr[i].x -= DISTANCE;
     }
 
-    // printw("test... : %d", i);
     refresh();
   }
   oldTime = curTime;
@@ -218,23 +250,21 @@ void showFoodsEnemies(int cnt, char type)
 {
   int fy, fx; // food 혹은 enemy의 y좌표, x좌표
   int i;
-  // todo : f와 e의 좌표가 플레이어 x, y의 좌표와 겹치지 않아야 한다.
-  // todo : 게임 시작시 플레이어가 있는 행에는 e가 없도록 한다.
 
   // 랜덤 숫자의 x, y좌표를 구한다.
   for (i = 0; i < cnt; i++)
   {
     // 현재 시간을 seed값으로 부여해서 무작위 난수 출력하기
     srand((unsigned int)time(NULL) + rand()); // 난수 초기화
-    fy = 2 + rand() % (HEIGHT - 2);           // 난수의 범위 2~15.
+    fy = 1 + rand() % (HEIGHT - 3);           // 난수의 범위 1~13. (15행은 플레이어 초기 위치이므로 제외)
 
     srand((unsigned int)time(NULL) + rand()); // 난수 초기화
-    fx = 2 + rand() % (WIDTH - 2);            // 난수의 범위 2~19.
+    fx = 1 + rand() % (WIDTH - 1);            // 난수의 범위 1~19.
 
     // 1, p 좌표는 제외한다.
     if (map[fy][fx] == '0')
     {
-      // map[fy][fx] = (type == 'f') ? 'f' : 'e'; // 랜덤 숫자를 배열 map에 넣는다.
+      // 랜덤 숫자를 배열 map에 넣는다.
       if (type == 'f')
       {
         map[fy][fx] = 'f';
@@ -247,13 +277,10 @@ void showFoodsEnemies(int cnt, char type)
         enemyArr[i].y = fy;
         enemyArr[i].direction = 'r';
       }
-
-      // continue;
     }
     else
-    {
+    { // 0이 아닌 것들과 중복될 경우 반복을 다시 실행한다.
       i--;
-      continue;
     }
   }
   oldTime = clock(); // 시간 초기화
@@ -315,8 +342,8 @@ void movePlayer(int *x, int *y, int nx, int ny, int *point)
     printw("○");
 
     if (mapObject == 'f')
-    { // 먹이
-      // map[*y + ny][*x + nx] = '0'; // map에서 'f'를 '0'으로 바꾼다.
+    {                              // 먹이
+      map[*y + ny][*x + nx] = '0'; // map에서 'f'를 '0'으로 바꾼다.
       getPoint(point);
       drawPointInfo(point);
     }
@@ -325,6 +352,17 @@ void movePlayer(int *x, int *y, int nx, int ny, int *point)
     *x += nx;
     *y += ny;
   }
+}
+
+// 플레이어와 enemy가 만나면 게임종료된다.
+bool crash(int *x, int *y)
+{
+  // 플레이어와 enemy가 만나면 playing = 0이 된다.
+  // 플레이어 좌표가 e이면 true
+  if (map[*y][*x] == 'e')
+    return true;
+  else
+    return false;
 }
 
 // 먹이(f)를 먹으면 point 증가
@@ -351,9 +389,18 @@ int keyControl()
     else if (key == RIGHT)
       return RIGHT;
   }
-
+  else if (firstKey == SPACE)
+    return SPACE;
   else if (firstKey == QUIT)
     return QUIT;
 
   return 0;
+}
+
+// 게임 오버 화면을 출력한다.
+void drawGameOver()
+{
+  clear();
+  printw("GAME OVER!");
+  refresh();
 }
