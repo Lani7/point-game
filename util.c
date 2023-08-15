@@ -15,13 +15,13 @@ void gotoXY(int x, int y)
 }
 
 // 렌더링되기까지 기다린다.
-void waitrender(clock_t oldTime, int SPEED)
+void waitrender(clock_t oldTime, int speed)
 {
   clock_t curTime;
   while (1)
   {
     curTime = clock();
-    if (curTime - oldTime > SPEED)
+    if (curTime - oldTime > speed)
       break;
   }
 }

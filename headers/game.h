@@ -5,7 +5,7 @@ int selectMenu();
 void explainRules();
 
 void gameLoop(int *);
-void setSpeed(int *);
+void setSpeed(int *, int *);
 
 void initMap();
 void drawMap(int *, int *);

@@ -3,11 +3,10 @@
 
 #define WIDTH 20
 #define HEIGHT 16
-#define DISTANCE 1 // 적이 움직이는 거리
-
-#define FOOD_CNT 2  // food의 개수
-#define ENEMY_CNT 5 // 적의 개수
-// #define SPEED 1000  // 적이 움직이는 속도
+#define DISTANCE 1       // 적이 움직이는 거리
+#define INIT_SPEED 20000 // 적의 속도
+#define FOOD_CNT 2       // food의 개수
+#define ENEMY_CNT 5      // 적의 개수
 
 // 방향키 27, 91, xx (3개 필요)
 #define LEFT 68
@@ -21,7 +20,7 @@
 #define Y 121    // y
 #define N 110    // n
 
-int SPEED;     // 적이 움직이는 속도
+int speed;     // 적이 움직이는 속도
 int fcnt;      // food 먹이의 개수
 int point = 0; // point 점수
 clock_t oldTime;
@@ -59,7 +58,6 @@ void moveEnemies(struct EnemyMotion *enemyArr);
 void gameLoop(int *stage)
 {
   clear();
-  // stage++;         // 난이도 단계
   int x, y; // 플레이어 좌표 저장 변수 (x, y)
 
   fcnt = FOOD_CNT; // food 먹이의 개수
@@ -74,7 +72,7 @@ void gameLoop(int *stage)
   initMap();
 
   // stage단계별 enemies의 속도 설정
-  setSpeed(stage);
+  setSpeed(stage, &speed);
 
   showFoodsEnemies(FOOD_CNT, 'f');  // 먹이의 좌표를 map에 생성
   showFoodsEnemies(ENEMY_CNT, 'e'); // 적의 좌표를 map에 생성
@@ -106,7 +104,7 @@ void gameLoop(int *stage)
 
     moveEnemies(enemyArr);
 
-    waitrender(oldTime, SPEED);
+    waitrender(oldTime, speed);
 
     refresh();
 
@@ -133,7 +131,6 @@ void gameLoop(int *stage)
 // food를 다 먹으면 stage를 clear한다.
 int clearStage(int *stage)
 {
-  // clear();
   printw("stage %d clear!\n", *stage);
   printw("다음 stage로 진행하겠습니까?\n");
   printw("(진행: y, 나가기: n)\n");
@@ -171,16 +168,18 @@ void moveEnemies(struct EnemyMotion *enemyArr)
   clock_t curTime = clock();
 
   // 현재시간에서 e배열 생성 후 저장된 시간을 뺀 차이가 speed(100ms)보다 클 때 움직인다.
-  if (curTime - oldTime < SPEED)
+  if (curTime - oldTime < speed)
     return;
 
   // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우 실행
   for (int i = 0; i < ENEMY_CNT; i++)
   {
+    mvprintw(0, 0, "curTime - oldTime: %d ", curTime - oldTime);
+    mvprintw(1, 1, "speed: %d ", speed);
     ex = enemyArr[i].x;
     ey = enemyArr[i].y;
 
-    sleep(20000);
+    sleep(speed); // stage단계별 speed 속도로 움직임 조절
 
     if (map[ey][ex] == 'f')
     { // 현재 좌표에 저장되어 있는 게 f라면 먹이를 출력한다.
@@ -360,10 +359,9 @@ void movePlayer(int *x, int *y, int nx, int ny, int *point)
   }
 }
 
-// 플레이어와 enemy가 만나면 게임종료된다.
+// 플레이어와 enemy가 만나면 게임종료된다.(playing = 0)
 bool crash(int *x, int *y)
 {
-  // 플레이어와 enemy가 만나면 playing = 0이 된다.
   // 플레이어 좌표가 e이면 true
   if (map[*y][*x] == 'e')
     return true;
@@ -380,24 +378,15 @@ int getPoint(int *point)
 }
 
 // stage 단계별로 enemies의 속도를 설정한다.
-void setSpeed(int *stage)
+void setSpeed(int *stage, int *speed)
 {
-  switch (*stage)
+  // stage증가시마다 속도가 빨라진다.
+  if (*stage == 1)
+    *speed = INIT_SPEED; // 초기 속도 설정
+
+  if (*speed >= 4000) // 최고 속도를 4000으로 제한한다
   {
-  case 1:
-    SPEED = 1000;
-  case 2:
-    SPEED = 800;
-    break;
-  case 3:
-    SPEED = 600;
-    break;
-  case 4:
-    SPEED = 400;
-    break;
-  case 5:
-    SPEED = 300;
-    break;
+    *speed -= 2000;
   }
 }
 
