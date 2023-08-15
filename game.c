@@ -3,10 +3,11 @@
 
 #define WIDTH 20
 #define HEIGHT 16
-#define FOOD_CNT 18 // food의 개수
-#define ENEMY_CNT 8 // 적의 개수
-#define SPEED 1000  // 적이 움직이는 속도
-#define DISTANCE 1  // 적이 움직이는 거리
+#define DISTANCE 1 // 적이 움직이는 거리
+
+#define FOOD_CNT 2  // food의 개수
+#define ENEMY_CNT 5 // 적의 개수
+// #define SPEED 1000  // 적이 움직이는 속도
 
 // 방향키 27, 91, xx (3개 필요)
 #define LEFT 68
@@ -17,6 +18,13 @@
 #define ARROW2 91
 #define SPACE 32
 #define QUIT 113 // q
+#define Y 121    // y
+#define N 110    // n
+
+int SPEED;     // 적이 움직이는 속도
+int fcnt;      // food 먹이의 개수
+int point = 0; // point 점수
+clock_t oldTime;
 
 char map[HEIGHT][WIDTH] = {
     {"11111111111111111111"},
@@ -36,8 +44,6 @@ char map[HEIGHT][WIDTH] = {
     {"1000000000p000000001"},
     {"11111111111111111111"}};
 
-clock_t oldTime;
-
 // enemy의 움직임을 위한 x, y좌표 구조체 선언
 struct EnemyMotion
 {
@@ -50,68 +56,25 @@ struct EnemyMotion
 struct EnemyMotion enemyArr[ENEMY_CNT];
 void moveEnemies(struct EnemyMotion *enemyArr);
 
-// 메뉴를 선택한다.
-int selectMenu()
+void gameLoop(int *stage)
 {
-  gotoXY(5, 6);
-  printMenu();
+  clear();
+  // stage++;         // 난이도 단계
+  int x, y; // 플레이어 좌표 저장 변수 (x, y)
 
-  int key = getchar() - '0';
-  switch (key)
-  {
-  case 1:
-    return 1;
-  case 2:
-    return 2;
-  case 3:
-    return 3;
-  }
-
-  return 0;
-}
-
-// 메뉴를 출력한다.
-void printMenu()
-{
-  printw("Menu (해당하는 번호를 입력하세요.) \n");
-  printw("1. 게임 시작\n");
-  printw("2. 게임 설명\n");
-  printw("3. 나가기\n");
-  refresh();
-}
-
-void titlePrint()
-{
-  // gotoXY(1, 1);
-  printw("Welcome\n"); // curses 모드에서는 printf() 불가
-  printw("to the score game.\n");
-  refresh(); // 화면의 내용을 갱신. 함수를 호출해야 해당 내용이 보인다.
-}
-
-// 게임 규칙을 설명한다.
-void explainRules()
-{
-  printw("1. 키보드 화살키로 ○를 상하좌우로 움직일 수 있다.\n");
-  printw("2. ●를 먹으면 포인트를 얻는다.\n");
-  printw("3. ◇를 만나면 게임이 종료된다.\n");
-  printw("\n메뉴로 돌아가기 : 스페이스바를 누르세요.");
-  refresh();
-
-  while (1)
-  {
-    if (keyControl() == SPACE)
-    {
-      clear();
-      break;
-    }
-  }
-}
-
-void gameLoop()
-{
-  int x, y;        // 플레이어 좌표 저장 변수 (x, y)
-  int point = 0;   // point 점수
+  fcnt = FOOD_CNT; // food 먹이의 개수
   int playing = 1; // 게임진행중. true
+
+  printw("stage %d start!", *stage);
+  refresh();
+  sleep(1000000);
+  clear();
+
+  // 맵 초기화
+  initMap();
+
+  // stage단계별 enemies의 속도 설정
+  setSpeed(stage);
 
   showFoodsEnemies(FOOD_CNT, 'f');  // 먹이의 좌표를 map에 생성
   showFoodsEnemies(ENEMY_CNT, 'e'); // 적의 좌표를 map에 생성
@@ -147,15 +110,58 @@ void gameLoop()
 
     refresh();
 
-    // 만약 플레이어와 enemy가 충돌하면 게임종료된다.(playing = 0)
+    // 만약 플레이어와 enemy가 충돌하면 게임종료된다.
     if (crash(&x, &y))
     {
       playing = 0;
+      point = 0; // 포인트 초기화
       // 게임 종료 후 게임 오버 화면.
       drawGameOver();
       sleep(2000000);
     }
+
+    // 먹이를 다 먹으면 clear되고, stage가 올라가면서 다시 게임이 시작된다.
+    if (fcnt == 0)
+    {
+      clear();
+      clearStage(stage);
+      break;
+    }
   }
+}
+
+// food를 다 먹으면 stage를 clear한다.
+int clearStage(int *stage)
+{
+  // clear();
+  printw("stage %d clear!\n", *stage);
+  printw("다음 stage로 진행하겠습니까?\n");
+  printw("(진행: y, 나가기: n)\n");
+  refresh();
+  bool flag;
+  while (1)
+  {
+    int key = keyControl();
+    if (key == N)
+    {
+      flag = false;
+      break;
+    }
+    else if (key == Y)
+    {
+      *stage += 1; // 단계 상승
+      flag = true;
+      break;
+    }
+  }
+
+  if (flag == true)
+  {
+    gameLoop(stage);
+    return 1;
+  }
+  else
+    return 0;
 }
 
 // enemy를 움직인다.
@@ -369,8 +375,30 @@ bool crash(int *x, int *y)
 int getPoint(int *point)
 {
   *point += 10;
-
+  fcnt--;
   return *point;
+}
+
+// stage 단계별로 enemies의 속도를 설정한다.
+void setSpeed(int *stage)
+{
+  switch (*stage)
+  {
+  case 1:
+    SPEED = 1000;
+  case 2:
+    SPEED = 800;
+    break;
+  case 3:
+    SPEED = 600;
+    break;
+  case 4:
+    SPEED = 400;
+    break;
+  case 5:
+    SPEED = 300;
+    break;
+  }
 }
 
 // 키보드 입력값을 받는다.
@@ -393,7 +421,10 @@ int keyControl()
     return SPACE;
   else if (firstKey == QUIT)
     return QUIT;
-
+  else if (firstKey == Y)
+    return Y;
+  else if (firstKey == N)
+    return N;
   return 0;
 }
 
@@ -403,4 +434,78 @@ void drawGameOver()
   clear();
   printw("GAME OVER!");
   refresh();
+}
+
+// 맵을 초기화한다.
+void initMap()
+{
+  int h, w;
+  for (h = 0; h < HEIGHT; h++)
+  {
+    for (w = 0; w < WIDTH; w++)
+    {
+      map[h][w] = (h == 0 || h == HEIGHT - 1) ? '1' : '0'; // 위아래 벽
+      if (w == 0 || w == WIDTH - 1)
+        map[h][w] = '1'; // 사이드 벽
+    }
+  }
+  // 플레이어 초기 위치
+  map[HEIGHT - 2][WIDTH / 2] = 'p';
+}
+
+// 메뉴를 선택한다.
+int selectMenu()
+{
+  gotoXY(5, 6);
+  printMenu();
+
+  int key = getchar() - '0';
+  switch (key)
+  {
+  case 1:
+    return 1;
+  case 2:
+    return 2;
+  case 3:
+    return 3;
+  }
+
+  return 0;
+}
+
+// 메뉴를 출력한다.
+void printMenu()
+{
+  printw("Menu (해당하는 번호를 입력하세요.) \n");
+  printw("1. 게임 시작\n");
+  printw("2. 게임 설명\n");
+  printw("3. 나가기\n");
+  refresh();
+}
+
+void titlePrint()
+{
+  // gotoXY(1, 1);
+  printw("Welcome\n"); // curses 모드에서는 printf() 불가
+  printw("to the score game.\n");
+  refresh(); // 화면의 내용을 갱신. 함수를 호출해야 해당 내용이 보인다.
+}
+
+// 게임 규칙을 설명한다.
+void explainRules()
+{
+  printw("1. 키보드 화살키로 ○를 상하좌우로 움직일 수 있다.\n");
+  printw("2. ●를 먹으면 포인트를 얻는다.\n");
+  printw("3. ◇를 만나면 게임이 종료된다.\n");
+  printw("\n메뉴로 돌아가기 : 스페이스바를 누르세요.");
+  refresh();
+
+  while (1)
+  {
+    if (keyControl() == SPACE)
+    {
+      clear();
+      break;
+    }
+  }
 }

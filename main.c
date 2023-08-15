@@ -12,22 +12,23 @@ int main()
 {
   init(); // 초기화
 
-  // 메뉴 선택하기
   bool flag = true;
+  int stage; // 난이도 단계
   while (flag)
   {
-    // clear(); // 화면 초기화
     gotoXY(5, 3);
     titlePrint();
 
+    // 메뉴 선택하기
     int key = selectMenu();
     clear(); // 화면 초기화
     switch (key)
     {
     case 1:
-      // 사용자 입력 받기
-      gameLoop();
-      // 본인의 이름과 점수, 랭킹 5 기록 보여주기
+      // todo: 사용자 입력 받기
+      stage = 1; // 1단계부터 시작
+      gameLoop(&stage);
+      // todo: 본인의 이름과 점수, 랭킹 5 기록 보여주기
       break;
     case 2:
       explainRules();
