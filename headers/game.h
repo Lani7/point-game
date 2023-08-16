@@ -4,6 +4,10 @@ void printMenu();
 int selectMenu();
 void explainRules();
 
+int inputUser();
+void printResult();
+int saveScore(int *);
+
 void gameLoop(int *);
 void setSpeed(int *, int *);
 
@@ -17,6 +21,6 @@ int getPoint(int *);
 bool crash(int *, int *);
 int clearStage(int *);
 
-int keyControl();
-
 void drawGameOver();
+
+int keyControl();

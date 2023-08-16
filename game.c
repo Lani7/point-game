@@ -8,6 +8,8 @@
 #define FOOD_CNT 2       // food의 개수
 #define ENEMY_CNT 5      // 적의 개수
 
+#define NAME_LIMIT 20 // 닉네임 글자수 제한
+
 // 방향키 27, 91, xx (3개 필요)
 #define LEFT 68
 #define RIGHT 67
@@ -16,14 +18,11 @@
 #define ARROW 27
 #define ARROW2 91
 #define SPACE 32
-#define QUIT 113 // q
-#define Y 121    // y
-#define N 110    // n
-
-int speed;     // 적이 움직이는 속도
-int fcnt;      // food 먹이의 개수
-int point = 0; // point 점수
-clock_t oldTime;
+#define QUIT 113    // q
+#define ENTER 13    // enter
+#define Y 121       // y
+#define N 110       // n
+#define BACKSPACE 8 // 백스페이스
 
 char map[HEIGHT][WIDTH] = {
     {"11111111111111111111"},
@@ -43,16 +42,29 @@ char map[HEIGHT][WIDTH] = {
     {"1000000000p000000001"},
     {"11111111111111111111"}};
 
+int speed;     // 적이 움직이는 속도
+int fcnt;      // food 먹이의 개수
+int point = 0; // point 점수
+clock_t oldTime;
+
 // enemy의 움직임을 위한 x, y좌표 구조체 선언
 struct EnemyMotion
 {
-  int x;
-  int y;
-  char direction; // l : 왼쪽, r : 오른쪽
+  int x;          // x좌표
+  int y;          // y좌표
+  char direction; // 방향 (l : 왼쪽, r : 오른쪽)
 };
 
-// 구조체 배열 선언
-struct EnemyMotion enemyArr[ENEMY_CNT];
+// 사용자 정보
+struct User
+{
+  char name[20]; // 이름
+  int score;     // 점수
+};
+
+struct User userInfo; // 구조체 선언
+
+struct EnemyMotion enemyArr[ENEMY_CNT]; // 구조체 배열 선언
 void moveEnemies(struct EnemyMotion *enemyArr);
 
 void gameLoop(int *stage)
@@ -111,11 +123,12 @@ void gameLoop(int *stage)
     // 만약 플레이어와 enemy가 충돌하면 게임종료된다.
     if (crash(&x, &y))
     {
-      playing = 0;
-      point = 0; // 포인트 초기화
+      saveScore(&point); // score 기록 저장
       // 게임 종료 후 게임 오버 화면.
       drawGameOver();
       sleep(2000000);
+      playing = 0;
+      point = 0; // 포인트 초기화
     }
 
     // 먹이를 다 먹으면 clear되고, stage가 올라가면서 다시 게임이 시작된다.
@@ -158,7 +171,10 @@ int clearStage(int *stage)
     return 1;
   }
   else
+  {
+    saveScore(&point); // score 저장
     return 0;
+  }
 }
 
 // enemy를 움직인다.
@@ -174,8 +190,6 @@ void moveEnemies(struct EnemyMotion *enemyArr)
   // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우 실행
   for (int i = 0; i < ENEMY_CNT; i++)
   {
-    mvprintw(0, 0, "curTime - oldTime: %d ", curTime - oldTime);
-    mvprintw(1, 1, "speed: %d ", speed);
     ex = enemyArr[i].x;
     ey = enemyArr[i].y;
 
@@ -284,8 +298,8 @@ void showFoodsEnemies(int cnt, char type)
       }
     }
     else
-    { // 0이 아닌 것들과 중복될 경우 반복을 다시 실행한다.
-      i--;
+    {
+      i--; // 0이 아닌 것들과 중복될 경우 반복을 다시 실행한다.
     }
   }
   oldTime = clock(); // 시간 초기화
@@ -408,6 +422,8 @@ int keyControl()
   }
   else if (firstKey == SPACE)
     return SPACE;
+  else if (firstKey == '\n')
+    return ENTER;
   else if (firstKey == QUIT)
     return QUIT;
   else if (firstKey == Y)
@@ -468,13 +484,13 @@ void printMenu()
   printw("Menu (해당하는 번호를 입력하세요.) \n");
   printw("1. 게임 시작\n");
   printw("2. 게임 설명\n");
-  printw("3. 나가기\n");
+  printw("3. 종료\n");
   refresh();
 }
 
+// 게임 시작 타이틀을 표시한다.
 void titlePrint()
 {
-  // gotoXY(1, 1);
   printw("Welcome\n"); // curses 모드에서는 printf() 불가
   printw("to the score game.\n");
   refresh(); // 화면의 내용을 갱신. 함수를 호출해야 해당 내용이 보인다.
@@ -486,15 +502,84 @@ void explainRules()
   printw("1. 키보드 화살키로 ○를 상하좌우로 움직일 수 있다.\n");
   printw("2. ●를 먹으면 포인트를 얻는다.\n");
   printw("3. ◇를 만나면 게임이 종료된다.\n");
-  printw("\n메뉴로 돌아가기 : 스페이스바를 누르세요.");
+  printw("\n메뉴로 돌아가기 : 엔터를 누르세요.");
   refresh();
 
   while (1)
   {
-    if (keyControl() == SPACE)
+    if (keyControl() == ENTER)
     {
       clear();
       break;
     }
   }
+}
+
+// 사용자 정보를 입력받는다.
+int inputUser()
+{
+  printw("사용자의 닉네임을 작성하신 후 엔터를 입력해주세요. (20자 미만)\n");
+  printw("닉네임 : ");
+  // refresh();
+  int key;
+  char *ptr = userInfo.name;
+  int i = 0;
+
+  getch(); // 버퍼에 남아있는 문자 비우기
+  // 입력한 문자를 userInfo.name 배열에 저장한다.
+  while (i < NAME_LIMIT - 1)
+  {
+    key = getchar();
+    if (key == ENTER)
+      break;
+    printw("%c", key); // 키보드로 문자를 입력할 때마다 콘솔에 표시한다.
+    refresh();
+    *(ptr + i++) = key;
+  }
+  *(ptr + i) = '\0'; // 문자열 끝에 null 문자를 추가한다.
+
+  printw("\n%s님 환영합니다. 즐거운 시간 되세요.\n", userInfo.name);
+  printw("게임을 시작하시려면 엔터를 눌러주세요.\n");
+  printw("메뉴로 돌아가시려면 스페이스바를 눌러주세요.\n");
+  refresh();
+  while (1)
+  {
+    int key = keyControl();
+    if (key == ENTER)
+    {
+      clear();
+      return 1; // 게임 시작
+    }
+    else if (key == SPACE)
+    {
+      clear();
+      return 0; // 메뉴로 돌아가기
+    }
+  }
+}
+
+// 게임 종료 후 사용자 기록을 보여준다.
+void printResult()
+{
+  clear();
+  printw("최종 기록\n");
+  printw("닉네임 : %s\n", userInfo.name);
+  printw("score : %d\n", userInfo.score);
+  printw("메뉴로 돌아가려면 엔터를 눌러주세요.\n");
+  while (1)
+  {
+    if (keyControl() == ENTER)
+    {
+      clear();
+      break;
+    }
+  }
+  refresh();
+}
+
+// score 기록을 저장한다.
+int saveScore(int *point)
+{
+  userInfo.score = *point;
+  return userInfo.score;
 }

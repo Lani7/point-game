@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <locale.h>  // setlocale()
-#include <stdlib.h>  //rand(), srand()
-#include <time.h>    //time(), clock()
+#include <stdlib.h>  // rand(), srand()
+#include <time.h>    // time(), clock()
 #include <stdbool.h> // bool
+#include <string.h>  // strcpy()
 
 #include "headers/main.h"
 #include "game.c"
-// #include "util.c"
 
 int main()
 {
@@ -25,10 +25,13 @@ int main()
     switch (key)
     {
     case 1:
-      // todo: 사용자 입력 받기
+      if (inputUser() != 1)
+        continue;
       stage = 1; // 1단계부터 시작
       gameLoop(&stage);
-      // todo: 본인의 이름과 점수, 랭킹 5 기록 보여주기
+      // todo: 본인의 이름과 점수 보여주기
+      printResult();
+      // todo: 랭킹 5 기록 보여주기
       break;
     case 2:
       explainRules();
@@ -39,18 +42,6 @@ int main()
     }
     clear(); // 화면 초기화
   }
-
-  // int key;
-  // while (1)
-  // {
-  //   key = getchar();
-  //   printw("%d\n", key);
-  //   refresh();
-  // }
-
-  // addstr("\n press any key to exit...");
-  // refresh();
-  // getch();
 
   endwin(); // curses모드 종료.
 

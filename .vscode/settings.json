@@ -5,6 +5,7 @@
     "util.h": "c",
     "stdio.h": "c",
     "time.h": "c",
-    "game.h": "c"
+    "game.h": "c",
+    "stdlib.h": "c"
   }
 }
