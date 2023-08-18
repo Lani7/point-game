@@ -8,7 +8,7 @@ int inputUser();
 void printResult();
 int saveScore(int *);
 
-void gameLoop(int *);
+void gameLoop(int *, int *);
 void setSpeed(int *, int *);
 
 void initMap();
@@ -19,8 +19,9 @@ void showFoodsEnemies(int, char);
 void movePlayer(int *, int *, int, int, int *);
 int getPoint(int *);
 bool crash(int *, int *);
-int clearStage(int *);
+int clearStage(int *, int *);
 
 void drawGameOver();
+// void printRank();
 
 int keyControl();
