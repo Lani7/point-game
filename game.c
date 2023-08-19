@@ -73,8 +73,9 @@ struct EnemyMotion enemyArr[ENEMY_CNT]; // 구조체 배열 선언
 
 // 구조체를 파라미터로 받는 함수들
 void moveEnemies(struct EnemyMotion *enemyArr);
-void saveRanking(struct User *ranking, int *);
 void printRank(struct User *ranking);
+void saveSort(struct User *rankingptr);
+int getridx(struct User *rankingptr);
 
 void gameLoop(int *stage, int *point)
 {
@@ -132,8 +133,8 @@ void gameLoop(int *stage, int *point)
     // 만약 플레이어와 enemy가 충돌하면 게임종료된다.
     if (crash(&x, &y))
     {
-      saveScore(point);               // score 기록 저장
-      saveRanking(ranking, &userCnt); // rank에 유저 정보 저장
+      saveScore(point);  // score 기록 저장
+      saveSort(ranking); // rank에 점수 순대로 정렬
       // 게임 종료 후 게임 오버 화면.
       drawGameOver();
       sleep(2000000);
@@ -166,8 +167,8 @@ int clearStage(int *stage, int *point)
     { // 나가기
       // flag = false;
       // break;
-      saveScore(point);               // score 저장
-      saveRanking(ranking, &userCnt); // rank에 유저 정보 저장
+      saveScore(point);  // score 저장
+      saveSort(ranking); // rank에 점수 순대로 정렬
       return 0;
     }
     else if (key == Y)
@@ -179,18 +180,6 @@ int clearStage(int *stage, int *point)
       return 1;
     }
   }
-  // if (flag == true)
-  // {
-  //   *stage += 1; // 단계 상승
-  //   gameLoop(stage, point);
-  //   return 1;
-  // }
-  // else
-  // {
-  //   saveScore(point);               // score 저장
-  //   saveRanking(ranking, &userCnt); // rank에 유저 정보 저장
-  //   return 0;
-  // }
 }
 
 // enemy를 움직인다.
@@ -583,7 +572,7 @@ void printResult()
   printw("닉네임 : %s\n", userInfo.name);
   printw("score : %d\n", userInfo.score);
   printw("\n\n");
-  printw("---------ranking---------\n");
+  printw("------------ ranking 5 ------------\n");
   printRank(ranking); // 랭킹 기록
   printw("\n\n메뉴로 돌아가려면 엔터를 눌러주세요.\n");
 
@@ -605,81 +594,11 @@ int saveScore(int *point)
   return userInfo.score;
 }
 
-// 랭킹 배열에 사용자 정보를 저장한다.
-void saveRanking(struct User *ranking, int *userCnt)
-{
-  printw("saveRanking()..!\n");
-  printw("userCnt : %d\n", *userCnt);
-  // 만약 사용자 정보가 랭킹 배열 요소보다 점수가 높으면
-
-  // 구조체 배열에 사용자 정보를 저장한다.
-  // 처음에는 하나만 저장해야 한다. ->
-  // 배열 요소의 점수와 비교해서 저장할 인덱스를 구한 다음 그 곳에 저장한다.
-  int i, j;
-  struct User *rptr; // 구조체의 포인터
-
-  if (*userCnt == 1)
-  {
-    rptr = ranking;
-    rptr->score = userInfo.score;
-    // name이 배열이기 때문에 문자열 저장을 위해 strcpy()함수를 사용한다.
-    strcpy(rptr->name, userInfo.name);
-
-    printw("rptr: %d ", rptr);
-    printw("score: %d ", rptr->score);
-    printw("name: %s \n", rptr->name);
-    refresh();
-  }
-
-  else if (*userCnt < 6) // 최초 5인까지만 (*userCnt == 5일때까지만)
-  {
-    printw("size of array 1: %d ", sizeof(*ranking) / sizeof(struct User));
-
-    // 구조체배열에 저장된 게 없으면 userinfo를 저장
-    for (i = 0; i < *userCnt; i++)
-    {
-      // i = ranking + (*userCnt - 1);
-      rptr = ranking + i;
-      // userinfo구조체의 name배열이 비어있지 않다면 반복을 건너뛴다.
-      if (strlen(rptr->name) != 0)
-        continue;
-
-      rptr->score = userInfo.score;
-      // ranking[i].score = userInfo.score;
-      // name이 배열이기 때문에 문자열 저장을 위해 strcpy()함수를 사용한다.
-      strcpy(rptr->name, userInfo.name);
-      // strcpy(ranking[i].name, userInfo.name);
-
-      printw("i : %d ", i);
-      printw("rptr: %d ", rptr);
-      printw("score: %d ", rptr->score);
-      printw("name: %s \n", rptr->name);
-      printw("size of array 2: %d ", sizeof(*ranking) / sizeof(struct User));
-      refresh();
-    }
-  }
-
-  printw("\n sizeof(*ranking)2 : %d", sizeof(*ranking));
-  printw(", sizeof(struct User)2 : %d \n ,", sizeof(ranking[0]));
-  printw("size2 : %d\n", sizeof(*ranking) / sizeof(ranking[0]));
-
-  while (1)
-  {
-    if (keyControl() == SPACE)
-      break;
-  }
-}
-
 // 랭커를 보여준다.
 void printRank(struct User *rankingptr)
 {
-  printw("userCnt: %d\n", userCnt);
-  // printw("sizeof(*ranking) : %d", sizeof(*ranking));
-  // printw("sizeof(ranking[0]) : %d", sizeof(ranking[0]));
-
-  // printw(", sizeof(struct User) : %d \n ,", sizeof(struct User));
-  // printw("size : %d\n", sizeof(*ranking) / sizeof(struct User));
-  int i, j;
+  // printw("userCnt: %d\n", userCnt);
+  int i;
   struct User *rptr; // 구조체의 포인터
 
   /* for (i = 0; i < sizeof(*ranking) / sizeof(ranking[0]); i++)
@@ -691,17 +610,91 @@ void printRank(struct User *rankingptr)
     매개변수 이름을 다른걸로 변경하고 전역변수에 선언된 배열 ranking의 사이즈를 가져오니
     배열의 크기가 잘 계산되었다.
   */
-  // for (i = 0; i < RANK_CNT; i++)
-  // 구조체 배열의 크기만큼 반복한다.
   for (i = 0; i < sizeof(ranking) / sizeof(struct User); i++)
   {
-    // rptr = ranking + i;
     rptr = rankingptr + i;
     if (strlen(rptr->name) == 0)
       continue;
-    printw("%d위\t", i);
+    printw("%d \t", i + 1);
     printw("name : %s, ", rptr->name);
     printw("score : %d\n", rptr->score);
   }
   refresh();
+}
+
+// 사용자 정보의 점수와 랭킹배열에 저장되어 있는 점수를 비교한 후
+// 사용자 정보보다 높은 점수의 랭킹 인덱스를 구한다.
+int getridx(struct User *rankingptr)
+{
+  struct User *rptr; // 구조체의 포인터
+  int ridx, i;
+
+  for (i = 0; i < sizeof(ranking) / sizeof(struct User); i++)
+  {
+    rptr = rankingptr + i;
+
+    // 사용자 점수가 랭킹 배열에서 몇 순위인지 인덱스를 구한다.
+    if (userInfo.score > ranking[i].score)
+    {
+      ridx = i;
+      break; // 반복 종료
+    }
+    else
+    {
+      ridx = -1;
+    }
+  }
+  return ridx;
+}
+
+// 사용자의 점수 순으로 정렬한 후 저장한다.
+void saveSort(struct User *rankingptr)
+{
+  struct User *rptr; // 구조체의 포인터
+  int i;
+
+  // 첫번째라면(userCnt가 1일 경우) 그대로 저장
+  if (userCnt == 1)
+  {
+    rptr = ranking;
+    rptr->score = userInfo.score;
+    // name이 배열이기 때문에 문자열 저장을 위해 strcpy()함수를 사용한다.
+    strcpy(rptr->name, userInfo.name);
+    return;
+  }
+
+  int ridx = getridx(rankingptr);
+  printw("ridx : %d", ridx);
+
+  // 그 이하 인덱스의 사용자 정보는 한 칸씩 뒤로 밀려가 저장한다.
+  // (5번째를 넘어가는 정보는 없어진다.)
+
+  // 랭킹 인덱스 ridx에 사용자 정보가 저장되고
+  // 기존 ridx 정보부터 그 이하는 한 순위씩 아래로 밀려난다.
+  char *nextN = (char *)malloc(sizeof(char) * NAME_LIMIT);
+  char *tempN = (char *)malloc(sizeof(char) * NAME_LIMIT);
+  int nextS, tempS;
+
+  // 기존 ridx정보를 temp에 담는다.
+  strcpy(tempN, ranking[ridx].name);
+  tempS = ranking[ridx].score;
+
+  for (i = ridx; i < (sizeof(ranking) / sizeof(struct User)) - 1; i++)
+  {
+    // ridx 다음 정보를 next에 담는다.
+    strcpy(nextN, ranking[i + 1].name);
+    nextS = ranking[i + 1].score;
+
+    // 아래로 tempN,tempS를 한 칸 순위 변경.
+    strcpy(ranking[i + 1].name, tempN);
+    ranking[i + 1].score = tempS;
+
+    // ridx 다음 인덱스 정보가 다음 반복에서 아래로 내려가는 해당 인덱스가 된다.
+    strcpy(tempN, nextN);
+    tempS = nextS;
+  }
+
+  // 배열의 ridx인덱스에 i번째 사용자 정보를 저장한다.
+  strcpy(ranking[ridx].name, userInfo.name);
+  ranking[ridx].score = userInfo.score;
 }
