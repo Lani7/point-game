@@ -19,11 +19,18 @@
 #define ARROW 27
 #define ARROW2 91
 #define SPACE 32
-#define QUIT 113    // q
-#define ENTER 13    // enter
-#define Y 121       // y
-#define N 110       // n
-#define BACKSPACE 8 // 백스페이스
+#define QUIT 113      // q
+#define ENTER 13      // enter
+#define Y 121         // y
+#define N 110         // n
+#define BACKSPACE 127 // 백스페이스
+
+// color
+#define ALL_WHITE 1
+#define ALL_BLACK 2
+#define F_YELLOW 3
+#define F_RED 4
+#define F_CYAN 5
 
 char map[HEIGHT][WIDTH] = {
     {"11111111111111111111"},
@@ -203,12 +210,16 @@ void moveEnemies(struct EnemyMotion *enemyArr)
     if (map[ey][ex] == 'f')
     { // 현재 좌표에 저장되어 있는 게 f라면 먹이를 출력한다.
       gotoXY(ex, ey);
+      attron(COLOR_PAIR(F_YELLOW));
       printw("●");
+      attroff(COLOR_PAIR(F_YELLOW));
     }
     else
     { // 현재 좌표의 e를 없어지게 한다.
       gotoXY(ex, ey);
+      attron(COLOR_PAIR(ALL_BLACK));
       printw(" ");
+      attroff(COLOR_PAIR(ALL_BLACK));
       map[ey][ex] = '0';
     }
 
@@ -229,7 +240,9 @@ void moveEnemies(struct EnemyMotion *enemyArr)
     {
       // 다음 +1 x좌표에 e를 출력한다.
       gotoXY(ex + DISTANCE, ey);
-      printw("◇");
+      attron(COLOR_PAIR(F_RED));
+      printw("◆");
+      attroff(COLOR_PAIR(F_RED));
 
       // 지나갈 좌표에 먹이가 있다면, 그 좌표에 다시 먹이를 출력해야 한다.
       if (map[ey][ex + DISTANCE] == 'f')
@@ -248,7 +261,9 @@ void moveEnemies(struct EnemyMotion *enemyArr)
     else if (edrt == 'l')
     {
       gotoXY(ex - DISTANCE, ey);
-      printw("◇");
+      attron(COLOR_PAIR(F_RED));
+      printw("◆");
+      attroff(COLOR_PAIR(F_RED));
 
       // 지나갈 좌표에 먹이가 있다면, 그 좌표에 다시 먹이를 출력해야 한다.
       if (map[ey][ex - DISTANCE] == 'f')
@@ -319,23 +334,35 @@ void drawMap(int *x, int *y)
     for (int w = 0; w < WIDTH; w++)
     {
       char loc = map[h][w];
-      if (loc == '0') // 빈 공간(공백)
+      switch (loc)
+      {
+      case '0': // 빈 공간(공백)
+        attron(COLOR_PAIR(ALL_BLACK));
         printw(" ");
-      else if (loc == '1') // 벽
-        printw("■");
-      else if (loc == 'p')
-      { // 플레이어
+        attroff(COLOR_PAIR(ALL_BLACK));
+        break;
+      case '1': // 벽
+        attron(COLOR_PAIR(ALL_WHITE));
+        printw(" ");
+        attroff(COLOR_PAIR(ALL_WHITE));
+        break;
+      case 'p': // 플레이어
         *x = w;
         *y = h;
+        attron(COLOR_PAIR(F_CYAN));
         printw("○");
-      }
-      else if (loc == 'f')
-      { // 먹이
+        attroff(COLOR_PAIR(F_CYAN));
+        break;
+      case 'f': // 먹이
+        attron(COLOR_PAIR(F_YELLOW));
         printw("●");
-      }
-      else if (loc == 'e')
-      { // enemy
-        printw("◇");
+        attroff(COLOR_PAIR(F_YELLOW));
+        break;
+      case 'e': // enemy
+        attron(COLOR_PAIR(F_RED));
+        printw("◆");
+        attroff(COLOR_PAIR(F_RED));
+        break;
       }
     }
     printw("\n");
@@ -360,10 +387,14 @@ void movePlayer(int *x, int *y, int nx, int ny, int *point)
   if (mapObject != '1')
   {
     gotoXY(*x, *y);
-    printw(" ");
+    attron(COLOR_PAIR(ALL_BLACK));
+    printw(" "); // 빈 공간
+    attroff(COLOR_PAIR(ALL_BLACK));
 
     gotoXY(*x + nx, *y + ny);
-    printw("○");
+    attron(COLOR_PAIR(F_CYAN));
+    printw("○"); // 플레이어
+    attroff(COLOR_PAIR(F_CYAN));
 
     if (mapObject == 'f')
     {                              // 먹이
@@ -435,6 +466,8 @@ int keyControl()
     return Y;
   else if (firstKey == N)
     return N;
+  else if (firstKey == BACKSPACE)
+    return BACKSPACE;
   return 0;
 }
 
@@ -504,9 +537,23 @@ void titlePrint()
 // 게임 규칙을 설명한다.
 void explainRules()
 {
-  printw("1. 키보드 화살키로 ○를 상하좌우로 움직일 수 있다.\n");
-  printw("2. ●를 먹으면 포인트를 얻는다.\n");
-  printw("3. ◇를 만나면 게임이 종료된다.\n");
+  printw("1. 키보드 화살키로 플레이어 ");
+  attron(COLOR_PAIR(F_CYAN));
+  printw("○");
+  attroff(COLOR_PAIR(F_CYAN));
+  printw("를 상하좌우로 움직일 수 있다.\n");
+
+  printw("2. 먹이 ");
+  attron(COLOR_PAIR(F_YELLOW));
+  printw("●");
+  attroff(COLOR_PAIR(F_YELLOW));
+  printw("를 먹으면 포인트를 얻는다.\n");
+
+  printw("3. 장애물 ");
+  attron(COLOR_PAIR(F_RED));
+  printw("◆");
+  attroff(COLOR_PAIR(F_RED));
+  printw("를 만나면 게임이 종료된다.\n");
   printw("\n메뉴로 돌아가기 : 엔터를 누르세요.");
   refresh();
 
@@ -523,36 +570,104 @@ void explainRules()
 // 사용자 정보를 입력받는다.
 int inputUser()
 {
-  printw("사용자의 닉네임을 작성하신 후 엔터를 입력해주세요. (20자 미만)\n");
-  printw("닉네임 : ");
-  int key;
+  int x, y, key, i;
+  bool flag;
   char *ptr = userInfo.name;
-  int i = 0;
 
-  getch(); // 버퍼에 남아있는 문자 비우기
-  // 입력한 문자를 userInfo.name 배열에 저장한다.
-  while (i < NAME_LIMIT - 1)
+  // printw("사용자의 닉네임을 작성하신 후 엔터를 입력해주세요. (20자 미만)\n");
+  // printw("닉네임 : ");
+  // refresh();
+  // getch(); // 버퍼에 남아있는 문자 비우기
+  // echo();
+  // scanf("%s", userInfo.name);
+
+  do
   {
-    key = getchar();
-    if (key == ENTER)
-      break;
-    printw("%c", key); // 키보드로 문자를 입력할 때마다 콘솔에 표시한다.
-    refresh();
-    *(ptr + i++) = key;
-  }
-  *(ptr + i) = '\0'; // 문자열 끝에 null 문자를 추가한다.
+    x = 0;
+    y = 0;
+    gotoXY(x, y);
+    printw("사용자의 닉네임을 작성하신 후 엔터를 입력해주세요. (20자 미만)\n");
+    printw("닉네임은 영문과 숫자로만 가능합니다.\n");
+    printw("닉네임 : ");
 
-  userCnt++; // 사용자수 증가
+    x = 8;
+    y = 2;
+    gotoXY(x, y);
+    getch(); // 버퍼에 남아있는 문자 비우기
+    // 입력한 문자를 userInfo.name 배열에 저장한다.
+    i = 0;
+    ///////// 이중 반복문 시작
+    while (i < NAME_LIMIT - 1)
+    {
+      key = getchar();
+      // 닉네임은  영문 또는 숫자만 가능
+      // if (key < '0' || (key > '9' && key < 'A') || (key > 'Z' && key < 'a') || key > 'z')
+      if ((key < 48 || (key > 57 && key < 65) || (key > 90 && key < 97) || key > 122) && key != BACKSPACE && key != ENTER)
+      {
+        continue;
+      }
+      // 백 스페이스를 누르면 바로 전의 문자가 사라진다.
+      if (key == BACKSPACE)
+      {
+        // 닉네임 입력 칸 이전은 삭제를 못하도록 한다.
+        if (x > 8)
+        {
+          gotoXY(x, y);
+          printw(" ");
+          refresh();
+          x--;
+          // 이전 글자를 지운다
+          *(ptr + --i) = ' ';
+          continue;
+        }
+        else
+          continue;
+      }
+      // 엔터 누르면 입력 종료 (반복문 탈출)
+      if (key == ENTER)
+      {
+        if (*ptr == '\0')
+        {
+          clear();
+          printw("닉네임을 입력하세요.\n");
+          printw("(스페이스바를 누르시면 이전 화면으로 돌아갑니다.)");
+          refresh();
+          while (1)
+          {
+            if (keyControl() == SPACE)
+              break;
+          }
+          clear();
+          flag = true; // 반복
+          break;
+        }
+        else
+        {
+          flag = false;
+          break;
+        }
+      }
+      x++;
+      gotoXY(x, y);
+      printw("%c", key); // 키보드로 문자를 입력할 때마다 콘솔에 표시한다.
+      refresh();
+      *(ptr + i++) = key;
+    }
+    *(ptr + i) = '\0'; // 문자열 끝에 null 문자를 추가한다.
+    ///////////// 이중 반복문 끝
+  } while (flag);
+  // 닉네임 입력을 하나도 안 하면 다시 하게끔 유도한다.
 
-  printw("\n%s님 환영합니다. 즐거운 시간 되세요.\n", userInfo.name);
-  printw("게임을 시작하시려면 엔터를 눌러주세요.\n");
-  printw("메뉴로 돌아가시려면 스페이스바를 눌러주세요.\n");
+  printw("\n%s님 환영합니다. 즐거운 시간 되세요.\n\n", userInfo.name);
+  printw("게임을 [시작]하시려면 [엔터]를 눌러주세요.\n");
+  printw("[메뉴]로 돌아가시려면 [스페이스바]를 눌러주세요.\n");
   refresh();
   while (1)
   {
     int key = keyControl();
     if (key == ENTER)
     {
+      userCnt++; // 사용자수 증가
       clear();
       return 1; // 게임 시작
     }
@@ -572,7 +687,7 @@ void printResult()
   printw("닉네임 : %s\n", userInfo.name);
   printw("score : %d\n", userInfo.score);
   printw("\n\n");
-  printw("------------ ranking 5 ------------\n");
+  printw("------------ ranking ------------\n");
   printRank(ranking); // 랭킹 기록
   printw("\n\n메뉴로 돌아가려면 엔터를 눌러주세요.\n");
 
@@ -639,6 +754,14 @@ int getridx(struct User *rankingptr)
       ridx = i;
       break; // 반복 종료
     }
+    // 5명 미만일 경우(점수도 랭커보다 높지 않을 때) 순서대로
+    else if (userCnt <= RANK_CNT)
+    {
+      // ranking 배열의 이름이 없을 경우 다음 반복으로.
+      if (strlen(rptr->name) == 0)
+        continue;
+      ridx = i;
+    }
     else
     {
       ridx = -1;
@@ -654,14 +777,14 @@ void saveSort(struct User *rankingptr)
   int i;
 
   // 첫번째라면(userCnt가 1일 경우) 그대로 저장
-  if (userCnt == 1)
-  {
-    rptr = ranking;
-    rptr->score = userInfo.score;
-    // name이 배열이기 때문에 문자열 저장을 위해 strcpy()함수를 사용한다.
-    strcpy(rptr->name, userInfo.name);
-    return;
-  }
+  // if (userCnt == 1)
+  // {
+  //   rptr = ranking;
+  //   rptr->score = userInfo.score;
+  //   // name이 배열이기 때문에 문자열 저장을 위해 strcpy()함수를 사용한다.
+  //   strcpy(rptr->name, userInfo.name);
+  //   return;
+  // }
 
   int ridx = getridx(rankingptr);
   printw("ridx : %d", ridx);
@@ -685,7 +808,7 @@ void saveSort(struct User *rankingptr)
     strcpy(nextN, ranking[i + 1].name);
     nextS = ranking[i + 1].score;
 
-    // 아래로 tempN,tempS를 한 칸 순위 변경.
+    // tempN,tempS를 한 칸 아래로 순위 변경.
     strcpy(ranking[i + 1].name, tempN);
     ranking[i + 1].score = tempS;
 
