@@ -3,10 +3,11 @@
 
 #define WIDTH 20
 #define HEIGHT 16
-#define DISTANCE 1       // 적이 움직이는 거리
-#define INIT_SPEED 20000 // 적의 속도
-#define FOOD_CNT 2       // food의 개수
-#define ENEMY_CNT 5      // 적의 개수
+#define DISTANCE 1 // 적이 움직이는 거리
+// #define INIT_SPEED 20000 // 적의 속도
+#define INIT_SPEED 100000 // 적의 속도
+#define FOOD_CNT 2        // food의 개수 10
+#define ENEMY_CNT 5       // 적의 개수 7
 
 #define NAME_LIMIT 20 // 닉네임 글자수 제한
 #define RANK_CNT 5    // 랭킹 수
@@ -84,16 +85,13 @@ void printRank(struct User *ranking);
 void saveSort(struct User *rankingptr);
 int getridx(struct User *rankingptr);
 
-int playing;
-
 void gameLoop(int *stage, int *point)
 {
   clear();
   int x, y; // 플레이어 좌표 저장 변수 (x, y)
 
   fcnt = FOOD_CNT; // food 먹이의 개수
-  // int playing = 1; // 게임진행중. true
-  playing = 1; // 게임진행중. true
+  int playing = 1; // 게임진행중. true
 
   printw("stage %d start!", *stage);
   refresh();
@@ -205,8 +203,9 @@ void moveEnemies(struct EnemyMotion *enemyArr)
     ex = enemyArr[i].x;
     ey = enemyArr[i].y;
 
-    sleep(speed); // stage단계별 speed 속도로 움직임 조절
+    // sleep(speed); // stage단계별 speed 속도로 움직임 조절
 
+    // 지나갈 좌표에 먹이가 있다면, 그 좌표에 다시 먹이를 출력해야 한다.
     if (map[ey][ex] == 'f')
     { // 현재 좌표에 저장되어 있는 게 f라면 먹이를 출력한다.
       gotoXY(ex, ey);
@@ -691,8 +690,8 @@ void printResult()
   printw("\n\n");
   printw("---------------- ranking ----------------\n");
   printRank(ranking); // 랭킹 기록
-  printw("\n\n메뉴로 돌아가려면 엔터를 눌러주세요.\n");
-
+  printw("\n\n확인하셨으면 엔터를 눌러주세요.");
+  refresh();
   while (1)
   {
     if (keyControl() == ENTER)
@@ -701,7 +700,6 @@ void printResult()
       break;
     }
   }
-  refresh();
 }
 
 // score 기록을 저장한다.
@@ -733,7 +731,7 @@ void printRank(struct User *rankingptr)
     if (strlen(rptr->name) == 0)
       continue;
     printw("%d \t", i + 1);
-    printw("name : %s, ", rptr->name);
+    printw("name : %s ", rptr->name);
     printw("\tscore : %d\n", rptr->score);
   }
   refresh();
@@ -786,16 +784,6 @@ void saveSort(struct User *rankingptr)
   struct User *rptr; // 구조체의 포인터
   int i;
 
-  // 첫번째라면(userCnt가 1일 경우) 그대로 저장
-  // if (userCnt == 1)
-  // {
-  //   rptr = ranking;
-  //   rptr->score = userInfo.score;
-  //   // name이 배열이기 때문에 문자열 저장을 위해 strcpy()함수를 사용한다.
-  //   strcpy(rptr->name, userInfo.name);
-  //   return;
-  // }
-
   int ridx = getridx(rankingptr);
   printw("ridx : %d", ridx);
   refresh();
@@ -831,4 +819,26 @@ void saveSort(struct User *rankingptr)
   // 배열의 ridx인덱스에 i번째 사용자 정보를 저장한다.
   strcpy(ranking[ridx].name, userInfo.name);
   ranking[ridx].score = userInfo.score;
+}
+
+// 다시 플레이할 것인지 묻는다.
+int askAgain()
+{
+  clear();
+  printw("다시 하시겠습니까?\n\n");
+  printw("다시 하기 : y\n");
+  printw("그만 하기 : n\n");
+  refresh();
+  while (1)
+  {
+    int key = keyControl();
+    if (key == Y)
+    {
+      return 1;
+    }
+    else if (key == N)
+    {
+      return 0;
+    }
+  }
 }

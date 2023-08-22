@@ -27,10 +27,13 @@ int main()
       // 사용자 입력
       if (inputUser() != 1)
         continue;
-      stage = 1;                // 1단계부터 시작
-      point = 0;                // point 점수
-      gameLoop(&stage, &point); // 게임 시작
-      printResult();            // 게임 결과 (닉네임과 점수, 랭킹기록)
+      do
+      {
+        stage = 1;                // 1단계부터 시작
+        point = 0;                // point 점수
+        gameLoop(&stage, &point); // 게임 시작
+        printResult();            // 게임 결과 (닉네임과 점수, 랭킹기록)
+      } while (askAgain());
       break;
     case 2:
       explainRules(); // 게임 설명

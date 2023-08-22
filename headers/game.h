@@ -23,5 +23,6 @@ int clearStage(int *, int *);
 
 void drawGameOver();
 // void printRank();
+int askAgain();
 
 int keyControl();
