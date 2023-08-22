@@ -84,13 +84,16 @@ void printRank(struct User *ranking);
 void saveSort(struct User *rankingptr);
 int getridx(struct User *rankingptr);
 
+int playing;
+
 void gameLoop(int *stage, int *point)
 {
   clear();
   int x, y; // 플레이어 좌표 저장 변수 (x, y)
 
   fcnt = FOOD_CNT; // food 먹이의 개수
-  int playing = 1; // 게임진행중. true
+  // int playing = 1; // 게임진행중. true
+  playing = 1; // 게임진행중. true
 
   printw("stage %d start!", *stage);
   refresh();
@@ -126,14 +129,16 @@ void gameLoop(int *stage, int *point)
       movePlayer(&x, &y, 1, 0, point);
       break;
 
-    case QUIT:
-      playing = 0; // 게임 종료
+    case QUIT:           // 나가기
+      playing = 0;       // 게임 종료
+      saveScore(point);  // score 기록 저장
+      saveSort(ranking); // rank에 점수 순대로 정렬
       break;
     }
 
     moveEnemies(enemyArr);
 
-    waitrender(oldTime, speed);
+    // waitrender(oldTime, speed);
 
     refresh();
 
@@ -166,22 +171,17 @@ int clearStage(int *stage, int *point)
   printw("다음 stage로 진행하겠습니까?\n");
   printw("(진행: y, 나가기: n)\n");
   refresh();
-  // bool flag;
   while (1)
   {
     int key = keyControl();
     if (key == N)
-    { // 나가기
-      // flag = false;
-      // break;
+    {                    // 나가기
       saveScore(point);  // score 저장
       saveSort(ranking); // rank에 점수 순대로 정렬
       return 0;
     }
     else if (key == Y)
     {
-      // flag = true;
-      // break;
       *stage += 1; // 단계 상승
       gameLoop(stage, point);
       return 1;
@@ -371,10 +371,11 @@ void drawMap(int *x, int *y)
   refresh();
 }
 
-// 포인트 정보를 보여준다.
+// 포인트 정보와 q:나가기를 보여준다.
 void drawPointInfo(int *point)
 {
-  mvprintw(10, 30, "Point : %04d", *point);
+  mvprintw(10, 30, "Point : %04d \n", *point);
+  mvprintw(1, 30, "(q : 나가기)");
   refresh();
 }
 
@@ -587,7 +588,7 @@ int inputUser()
     y = 0;
     gotoXY(x, y);
     printw("사용자의 닉네임을 작성하신 후 엔터를 입력해주세요. (20자 미만)\n");
-    printw("닉네임은 영문과 숫자로만 가능합니다.\n");
+    printw("닉네임은 공백없이 영문과 숫자로만 가능합니다.\n");
     printw("닉네임 : ");
 
     x = 8;
@@ -626,7 +627,7 @@ int inputUser()
       // 엔터 누르면 입력 종료 (반복문 탈출)
       if (key == ENTER)
       {
-        if (*ptr == '\0')
+        if (*ptr == '\0' || *ptr == SPACE)
         {
           clear();
           printw("닉네임을 입력하세요.\n");
@@ -658,6 +659,7 @@ int inputUser()
   } while (flag);
   // 닉네임 입력을 하나도 안 하면 다시 하게끔 유도한다.
 
+  // printw("\n strings:%s, integer:%d", userInfo.name, userInfo.name);
   printw("\n%s님 환영합니다. 즐거운 시간 되세요.\n\n", userInfo.name);
   printw("게임을 [시작]하시려면 [엔터]를 눌러주세요.\n");
   printw("[메뉴]로 돌아가시려면 [스페이스바]를 눌러주세요.\n");
@@ -683,11 +685,11 @@ int inputUser()
 void printResult()
 {
   clear();
-  printw("최종 기록\n");
-  printw("닉네임 : %s\n", userInfo.name);
-  printw("score : %d\n", userInfo.score);
+  printw("\t< 최종 기록 >\n\n");
+  printw("\t[닉네임] : %s\n", userInfo.name);
+  printw("\t[score] : %d\n", userInfo.score);
   printw("\n\n");
-  printw("------------ ranking ------------\n");
+  printw("---------------- ranking ----------------\n");
   printRank(ranking); // 랭킹 기록
   printw("\n\n메뉴로 돌아가려면 엔터를 눌러주세요.\n");
 
@@ -732,7 +734,7 @@ void printRank(struct User *rankingptr)
       continue;
     printw("%d \t", i + 1);
     printw("name : %s, ", rptr->name);
-    printw("score : %d\n", rptr->score);
+    printw("\tscore : %d\n", rptr->score);
   }
   refresh();
 }
@@ -748,19 +750,27 @@ int getridx(struct User *rankingptr)
   {
     rptr = rankingptr + i;
 
-    // 사용자 점수가 랭킹 배열에서 몇 순위인지 인덱스를 구한다.
+    // 사용자 점수가 랭킹 점수보다 높을 경우
     if (userInfo.score > ranking[i].score)
     {
       ridx = i;
       break; // 반복 종료
     }
-    // 5명 미만일 경우(점수도 랭커보다 높지 않을 때) 순서대로
+    // 5명 이하일 경우
     else if (userCnt <= RANK_CNT)
     {
       // ranking 배열의 이름이 없을 경우 다음 반복으로.
       if (strlen(rptr->name) == 0)
         continue;
-      ridx = i;
+      // 사용자 점수가 랭킹 점수보다 높을 경우
+      if (userInfo.score > ranking[i].score)
+      {
+        ridx = i;
+      }
+      else
+      {
+        ridx = userCnt - 1;
+      }
     }
     else
     {
@@ -788,6 +798,7 @@ void saveSort(struct User *rankingptr)
 
   int ridx = getridx(rankingptr);
   printw("ridx : %d", ridx);
+  refresh();
 
   // 그 이하 인덱스의 사용자 정보는 한 칸씩 뒤로 밀려가 저장한다.
   // (5번째를 넘어가는 정보는 없어진다.)
