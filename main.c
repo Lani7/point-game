@@ -16,7 +16,6 @@ int main()
   int stage, point; // 난이도 단계, 포인트
   while (flag)
   {
-    gotoXY(5, 3);
     titlePrint();
 
     int key = selectMenu(); // 메뉴 선택

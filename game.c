@@ -3,8 +3,7 @@
 
 #define WIDTH 20
 #define HEIGHT 16
-#define DISTANCE 1 // 적이 움직이는 거리
-// #define INIT_SPEED 20000 // 적의 속도
+#define DISTANCE 1        // 적이 움직이는 거리
 #define INIT_SPEED 100000 // 적의 속도
 #define FOOD_CNT 2        // food의 개수 10
 #define INIT_ENEMY_CNT 4  // 적의 개수 7
@@ -52,10 +51,8 @@ char map[HEIGHT][WIDTH] = {
     {"1000000000p000000001"},
     {"11111111111111111111"}};
 
-int speed;    // 적이 움직이는 속도
-int fcnt;     // food 먹이의 개수
-int userCnt;  // 사용자수
-int enemyCnt; // 장애물 개수
+int speed, fcnt, userCnt, enemyCnt;
+// 적이 움직이는 속도, food 먹이의 개수, 사용자수, 장애물 개수
 
 clock_t oldTime;
 
@@ -79,16 +76,13 @@ struct EnemyMotion
   char direction; // 방향 (l : 왼쪽, r : 오른쪽)
 };
 
-// 구조체 배열 선언
-// struct EnemyMotion enemyArr[ENEMY_CNT];
-
 // 구조체 배열 포인터 선언
 struct EnemyMotion *enemyArr;
 
 // 구조체를 파라미터로 받는 함수들
 void moveEnemies(struct EnemyMotion *enemyArr);
 void printRank(struct User *ranking);
-void saveSort(struct User *rankingptr);
+void sortRank(struct User *rankingptr);
 int getridx(struct User *rankingptr);
 
 void gameLoop(int *stage, int *point)
@@ -99,6 +93,7 @@ void gameLoop(int *stage, int *point)
   fcnt = FOOD_CNT; // food 먹이의 개수
   int playing = 1; // 게임진행중. true
 
+  gotoXY(5, 3);
   printw("stage %d start!", *stage);
   refresh();
   sleep(1000000);
@@ -137,7 +132,7 @@ void gameLoop(int *stage, int *point)
     case QUIT:           // 나가기
       playing = 0;       // 게임 종료
       saveScore(point);  // score 기록 저장
-      saveSort(ranking); // rank에 점수 순대로 정렬
+      sortRank(ranking); // rank에 점수 순대로 정렬
       break;
     }
 
@@ -151,7 +146,7 @@ void gameLoop(int *stage, int *point)
     if (crash(&x, &y))
     {
       saveScore(point);  // score 기록 저장
-      saveSort(ranking); // rank에 점수 순대로 정렬
+      sortRank(ranking); // rank에 점수 순대로 정렬
       // 게임 종료 후 게임 오버 화면.
       drawGameOver();
       sleep(2000000);
@@ -182,7 +177,7 @@ int clearStage(int *stage, int *point)
     if (key == N)
     {                    // 나가기
       saveScore(point);  // score 저장
-      saveSort(ranking); // rank에 점수 순대로 정렬
+      sortRank(ranking); // rank에 점수 순대로 정렬
       return 0;
     }
     else if (key == Y)
@@ -502,6 +497,7 @@ int keyControl()
 void drawGameOver()
 {
   clear();
+  gotoXY(5, 3);
   printw("GAME OVER!");
   refresh();
 }
@@ -546,41 +542,46 @@ int selectMenu()
 // 메뉴를 출력한다.
 void printMenu()
 {
-  printw("Menu (해당하는 번호를 입력하세요.) \n");
-  printw("1. 게임 시작\n");
-  printw("2. 게임 설명\n");
-  printw("3. 종료\n");
+  mvprintw(10, 8, "Menu (키보드로 번호를 입력하세요.) \n");
+  mvprintw(12, 8, "1. 게임 시작\n");
+  mvprintw(13, 8, "2. 게임 설명\n");
+  mvprintw(14, 8, "3. 종료\n");
   refresh();
 }
 
 // 게임 시작 타이틀을 표시한다.
 void titlePrint()
 {
-  printw("Welcome\n"); // curses 모드에서는 printf() 불가
-  printw("to the score game.\n");
+  mvprintw(2, 8, " ------------------------- \n");
+  mvprintw(3, 8, "|                         |");
+  mvprintw(4, 8, "|         WELCOME         |\n"); // curses 모드에서는 printf() 불가
+  mvprintw(5, 8, "|    TO THE POINT GAME.   |\n");
+  mvprintw(6, 8, "|                         |");
+  mvprintw(7, 8, " ------------------------- \n");
   refresh(); // 화면의 내용을 갱신. 함수를 호출해야 해당 내용이 보인다.
 }
 
 // 게임 규칙을 설명한다.
 void explainRules()
 {
+  printw("< 게임 설명 >\n\n");
   printw("1. 키보드 화살키로 플레이어 ");
   attron(COLOR_PAIR(F_CYAN));
   printw("○");
   attroff(COLOR_PAIR(F_CYAN));
-  printw("를 상하좌우로 움직일 수 있다.\n");
+  printw("를 상하좌우로 움직일 수 있습니다.\n");
 
   printw("2. 먹이 ");
   attron(COLOR_PAIR(F_YELLOW));
   printw("●");
   attroff(COLOR_PAIR(F_YELLOW));
-  printw("를 먹으면 포인트를 얻는다.\n");
+  printw("를 먹으면 포인트를 얻습니다.\n");
 
   printw("3. 장애물 ");
   attron(COLOR_PAIR(F_RED));
   printw("◆");
   attroff(COLOR_PAIR(F_RED));
-  printw("를 만나면 게임이 종료된다.\n");
+  printw("를 만나면 게임이 종료됩니다.\n");
   printw("\n메뉴로 돌아가기 : 엔터를 누르세요.");
   refresh();
 
@@ -610,11 +611,12 @@ int inputUser()
 
   do
   {
+    *ptr = 0; // 문자열 배열 초기화(null) // *ptr = '\0';
     x = 0;
     y = 0;
     gotoXY(x, y);
-    printw("사용자의 닉네임을 작성하신 후 엔터를 입력해주세요. (20자 미만)\n");
-    printw("닉네임은 공백없이 영문과 숫자로만 가능합니다.\n");
+    printw("사용자의 닉네임을 작성하신 후 엔터를 입력해주세요.\n");
+    printw("닉네임은 공백없이 영문과 숫자로만 가능합니다. (20자 미만)\n");
     printw("닉네임 : ");
 
     x = 8;
@@ -656,7 +658,7 @@ int inputUser()
         if (*ptr == '\0' || *ptr == SPACE)
         {
           clear();
-          printw("닉네임을 입력하세요.\n");
+          printw("닉네임을 입력하세요.\n\n");
           printw("(스페이스바를 누르시면 이전 화면으로 돌아갑니다.)");
           refresh();
           while (1)
@@ -686,7 +688,7 @@ int inputUser()
   // 닉네임 입력을 하나도 안 하면 다시 하게끔 유도한다.
 
   // printw("\n strings:%s, integer:%d", userInfo.name, userInfo.name);
-  printw("\n%s님 환영합니다. 즐거운 시간 되세요.\n\n", userInfo.name);
+  printw("\n\n%s님 환영합니다. 즐거운 시간 되세요.\n\n", userInfo.name);
   printw("게임을 [시작]하시려면 [엔터]를 눌러주세요.\n");
   printw("[메뉴]로 돌아가시려면 [스페이스바]를 눌러주세요.\n");
   refresh();
@@ -715,7 +717,7 @@ void printResult()
   printw("\t[닉네임] : %s\n", userInfo.name);
   printw("\t[score] : %d\n", userInfo.score);
   printw("\n\n");
-  printw("---------------- ranking ----------------\n");
+  printw("-------------------- ranking --------------------\n");
   printRank(ranking); // 랭킹 기록
   printw("\n\n확인하셨으면 엔터를 눌러주세요.");
   refresh();
@@ -739,7 +741,6 @@ int saveScore(int *point)
 // 랭커를 보여준다.
 void printRank(struct User *rankingptr)
 {
-  // printw("userCnt: %d\n", userCnt);
   int i;
   struct User *rptr; // 구조체의 포인터
 
@@ -759,7 +760,7 @@ void printRank(struct User *rankingptr)
       continue;
     printw("%d \t", i + 1);
     printw("name : %s ", rptr->name);
-    printw("\tscore : %d\n", rptr->score);
+    printw("\t\tscore : %d\n", rptr->score);
   }
   refresh();
 }
@@ -800,7 +801,7 @@ int getridx(struct User *rankingptr)
 }
 
 // 사용자의 점수 순으로 정렬한 후 저장한다.
-void saveSort(struct User *rankingptr)
+void sortRank(struct User *rankingptr)
 {
   struct User *rptr; // 구조체의 포인터
   int i;
