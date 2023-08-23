@@ -7,7 +7,8 @@
 // #define INIT_SPEED 20000 // 적의 속도
 #define INIT_SPEED 100000 // 적의 속도
 #define FOOD_CNT 2        // food의 개수 10
-#define ENEMY_CNT 5       // 적의 개수 7
+#define INIT_ENEMY_CNT 4  // 적의 개수 7
+#define MAX_ENEMY_CNT 16  // 최대적의 개수 10
 
 #define NAME_LIMIT 20 // 닉네임 글자수 제한
 #define RANK_CNT 5    // 랭킹 수
@@ -51,9 +52,10 @@ char map[HEIGHT][WIDTH] = {
     {"1000000000p000000001"},
     {"11111111111111111111"}};
 
-int speed;   // 적이 움직이는 속도
-int fcnt;    // food 먹이의 개수
-int userCnt; // 사용자수
+int speed;    // 적이 움직이는 속도
+int fcnt;     // food 먹이의 개수
+int userCnt;  // 사용자수
+int enemyCnt; // 장애물 개수
 
 clock_t oldTime;
 
@@ -77,7 +79,11 @@ struct EnemyMotion
   char direction; // 방향 (l : 왼쪽, r : 오른쪽)
 };
 
-struct EnemyMotion enemyArr[ENEMY_CNT]; // 구조체 배열 선언
+// 구조체 배열 선언
+// struct EnemyMotion enemyArr[ENEMY_CNT];
+
+// 구조체 배열 포인터 선언
+struct EnemyMotion *enemyArr;
 
 // 구조체를 파라미터로 받는 함수들
 void moveEnemies(struct EnemyMotion *enemyArr);
@@ -103,10 +109,11 @@ void gameLoop(int *stage, int *point)
 
   // stage단계별 enemies의 속도 설정
   setSpeed(stage, &speed);
+  setEnemyCnt(stage, &enemyCnt);
 
-  showFoodsEnemies(FOOD_CNT, 'f');  // 먹이의 좌표를 map에 생성
-  showFoodsEnemies(ENEMY_CNT, 'e'); // 적의 좌표를 map에 생성
-  drawMap(&x, &y);                  // map 출력. 좌표 포인터를 전달
+  showFoodsEnemies(FOOD_CNT, 'f'); // 먹이의 좌표를 map에 생성
+  showFoodsEnemies(enemyCnt, 'e'); // 적의 좌표를 map에 생성
+  drawMap(&x, &y);                 // map 출력. 좌표 포인터를 전달
 
   drawPointInfo(point); // point 정보
 
@@ -198,7 +205,7 @@ void moveEnemies(struct EnemyMotion *enemyArr)
     return;
 
   // 현재시간 기준으로 이전 시간으로부터 speed만큼 지났을 경우 실행
-  for (int i = 0; i < ENEMY_CNT; i++)
+  for (int i = 0; i < enemyCnt; i++)
   {
     ex = enemyArr[i].x;
     ey = enemyArr[i].y;
@@ -289,6 +296,12 @@ void showFoodsEnemies(int cnt, char type)
   int fy, fx; // food 혹은 enemy의 y좌표, x좌표
   int i;
 
+  // 장애물 배열의 동적 할당
+  if (type == 'e')
+  {
+    enemyArr = (struct EnemyMotion *)malloc(sizeof(struct EnemyMotion) * enemyCnt);
+  }
+
   // 랜덤 숫자의 x, y좌표를 구한다.
   for (i = 0; i < cnt; i++)
   {
@@ -310,6 +323,7 @@ void showFoodsEnemies(int cnt, char type)
       else
       {
         map[fy][fx] = 'e';
+
         // enemies의 랜덤 x, y좌표(fy, fx)를 구조체 배열에 저장한다.
         enemyArr[i].x = fx;
         enemyArr[i].y = fy;
@@ -434,9 +448,22 @@ void setSpeed(int *stage, int *speed)
   if (*stage == 1)
     *speed = INIT_SPEED; // 초기 속도 설정
 
-  if (*speed >= 4000) // 최고 속도를 4000으로 제한한다
+  else if (*speed >= 4000) // 최고 속도를 4000으로 제한한다
   {
     *speed -= 2000;
+  }
+}
+
+// stage 단계별로 enemies의 개수를 설정한다.
+void setEnemyCnt(int *stage, int *enemyCnt)
+{
+  // stage증가시마다 enemies의 개수가 많아진다.
+  if (*stage == 1)
+    *enemyCnt = INIT_ENEMY_CNT; // 초기 개수 설정
+
+  else if (*enemyCnt <= MAX_ENEMY_CNT) // 최고 개수를 제한한다
+  {
+    *enemyCnt += 2;
   }
 }
 
@@ -743,32 +770,26 @@ int getridx(struct User *rankingptr)
 {
   struct User *rptr; // 구조체의 포인터
   int ridx, i;
-
+  struct User *nextPtr;
   for (i = 0; i < sizeof(ranking) / sizeof(struct User); i++)
   {
     rptr = rankingptr + i;
-
+    nextPtr = rankingptr + i + 1;
+    printw("i : %d\n", i);
     // 사용자 점수가 랭킹 점수보다 높을 경우
     if (userInfo.score > ranking[i].score)
     {
       ridx = i;
       break; // 반복 종료
     }
-    // 5명 이하일 경우
-    else if (userCnt <= RANK_CNT)
+    // 다음 랭킹 인덱스에 이름이 없을 경우 그 인덱스에 저장한다.
+    else if (i < sizeof(ranking) / (sizeof(struct User) - 1) && strlen(nextPtr->name) == 0)
     {
-      // ranking 배열의 이름이 없을 경우 다음 반복으로.
-      if (strlen(rptr->name) == 0)
-        continue;
-      // 사용자 점수가 랭킹 점수보다 높을 경우
-      if (userInfo.score > ranking[i].score)
-      {
-        ridx = i;
-      }
-      else
-      {
+      if (userCnt == 1)
         ridx = userCnt - 1;
-      }
+      else
+        ridx = i + 1;
+      break;
     }
     else
     {
@@ -785,8 +806,6 @@ void saveSort(struct User *rankingptr)
   int i;
 
   int ridx = getridx(rankingptr);
-  printw("ridx : %d", ridx);
-  refresh();
 
   // 그 이하 인덱스의 사용자 정보는 한 칸씩 뒤로 밀려가 저장한다.
   // (5번째를 넘어가는 정보는 없어진다.)
@@ -819,6 +838,9 @@ void saveSort(struct User *rankingptr)
   // 배열의 ridx인덱스에 i번째 사용자 정보를 저장한다.
   strcpy(ranking[ridx].name, userInfo.name);
   ranking[ridx].score = userInfo.score;
+
+  free(nextN);
+  free(tempN);
 }
 
 // 다시 플레이할 것인지 묻는다.
@@ -838,6 +860,7 @@ int askAgain()
     }
     else if (key == N)
     {
+      free(enemyArr);
       return 0;
     }
   }

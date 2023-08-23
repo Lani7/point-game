@@ -10,6 +10,7 @@ int saveScore(int *);
 
 void gameLoop(int *, int *);
 void setSpeed(int *, int *);
+void setEnemyCnt(int *, int *);
 
 void initMap();
 void drawMap(int *, int *);
