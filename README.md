@@ -31,6 +31,6 @@ https://codemate.kr/project/C%EC%96%B8%EC%96%B4-%EB%A9%94%EC%9D%B4%ED%8A%B8-%EC%
 
 https://geundung.dev/14
 
-
+https://huiyu.tistory.com/entry/C%EC%96%B8%EC%96%B4%EB%A1%9C-%EA%B2%8C%EC%9E%84%EB%A7%8C%EB%93%A4%EA%B8%B0-5-%EC%B2%AB%EB%B2%88%EC%A7%B8-%EA%B2%8C%EC%9E%843%EC%9B%80%EC%A7%81%EC%9D%B4%EB%8A%94-%EA%B3%A8%EB%8C%80-%EB%A7%8C%EB%93%A4%EA%B8%B0
 
 
