@@ -5,9 +5,9 @@
 #define HEIGHT 16
 #define DISTANCE 1        // 적이 움직이는 거리
 #define INIT_SPEED 100000 // 적의 속도
-#define FOOD_CNT 2        // food의 개수 10
-#define INIT_ENEMY_CNT 4  // 적의 개수 7
-#define MAX_ENEMY_CNT 16  // 최대적의 개수 10
+#define FOOD_CNT 10       // food의 개수
+#define INIT_ENEMY_CNT 4  // 적의 개수
+#define MAX_ENEMY_CNT 16  // 최대 적의 개수
 
 #define NAME_LIMIT 20 // 닉네임 글자수 제한
 #define RANK_CNT 5    // 랭킹 수
@@ -152,12 +152,14 @@ void gameLoop(int *stage, int *point)
       sleep(2000000);
       playing = 0;
       *point = 0; // 포인트 초기화
+      free(enemyArr);
     }
 
     // 먹이를 다 먹으면 clear되고, stage가 올라가면서 다시 게임이 시작된다.
     if (fcnt == 0)
     {
       clear();
+      free(enemyArr);
       clearStage(stage, point);
       break;
     }
@@ -613,14 +615,14 @@ int inputUser()
   {
     *ptr = 0; // 문자열 배열 초기화(null) // *ptr = '\0';
     x = 0;
-    y = 0;
+    y = 1;
     gotoXY(x, y);
     printw("사용자의 닉네임을 작성하신 후 엔터를 입력해주세요.\n");
     printw("닉네임은 공백없이 영문과 숫자로만 가능합니다. (20자 미만)\n");
     printw("닉네임 : ");
 
     x = 8;
-    y = 2;
+    y = 3;
     gotoXY(x, y);
     getch(); // 버퍼에 남아있는 문자 비우기
     // 입력한 문자를 userInfo.name 배열에 저장한다.
@@ -776,21 +778,26 @@ int getridx(struct User *rankingptr)
   {
     rptr = rankingptr + i;
     nextPtr = rankingptr + i + 1;
-    printw("i : %d\n", i);
     // 사용자 점수가 랭킹 점수보다 높을 경우
     if (userInfo.score > ranking[i].score)
     {
       ridx = i;
       break; // 반복 종료
     }
+    // 사용자 점수가 랭킹 점수보다 낮거나 같을 경우
     // 다음 랭킹 인덱스에 이름이 없을 경우 그 인덱스에 저장한다.
     else if (i < sizeof(ranking) / (sizeof(struct User) - 1) && strlen(nextPtr->name) == 0)
     {
-      if (userCnt == 1)
-        ridx = userCnt - 1;
+      if (userCnt == 1 && userInfo.score == ranking[i].score)
+      {
+        ridx = i;
+        break;
+      }
       else
+      {
         ridx = i + 1;
-      break;
+        break;
+      }
     }
     else
     {
@@ -861,7 +868,6 @@ int askAgain()
     }
     else if (key == N)
     {
-      free(enemyArr);
       return 0;
     }
   }
